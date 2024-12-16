@@ -6,59 +6,76 @@
     <title>Accueil</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7fc;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-        }
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+    color: white;
+}
 
-        .container {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-        }
 
-        h1 {
-            color: #333;
-            font-size: 1.5em;
-            margin-bottom: 30px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-        }
+.container {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 4px 30px rgba(0, 255, 255, 0.4);
+    width: 100%;
+    max-width: 500px;
+    transition: transform 0.3s ease;
+}
 
-        a {
-            background: #6C87AD;
-            font-size: 1.2em;
-            color: black;
-            text-decoration: none;
-            padding: 8px 20px;
-            border-radius: 10px;
-            margin: 0 15px;
-            transition: background-color 0.3s ease;
-        }
+.container:hover {
+    transform: scale(1.05);
+}
 
-        a:hover {
-            background-color: #007bff;
-            color: white;
-        }
+h1 {
+    color: #00eaff;
+    font-size: 2em;
+    text-shadow: 0px 0px 15px rgba(0, 255, 255, 0.8);
+    margin-bottom: 30px;
+}
 
-        a:focus {
-            outline: none;
-        }
-        img {
-            width: 50%;
-            max-width: 150px;
-            border-radius: 100px;
-            margin-top: 20px;
-            margin-bottom: 30px;
-        }
+
+a {
+    background: #6C87AD;
+    font-size: 1.2em;
+    color: white;
+    text-decoration: none;
+    padding: 12px 25px;
+    border-radius: 20px;
+    margin: 10px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+a:hover {
+    background-color: #00eaff;
+    color: black;
+    transform: translateY(-3px);
+}
+
+a:focus {
+    outline: none;
+}
+
+
+img {
+    width: 60%;
+    max-width: 180px;
+    border-radius: 50%;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    transition: transform 0.3s ease;
+}
+
+img:hover {
+    transform: rotate(15deg);
+}
+
     </style>
 </head>
 <body>

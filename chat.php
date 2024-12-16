@@ -1,252 +1,220 @@
-
 <?php
 session_start();
-if (!isset($_SESSION['user'])) {
+
+// Vérifier si l'utilisateur est connecté
+if (!isset($_SESSION['username'])) {
     header('Location: login.php');
-    exit;
+    exit();
 }
 
-$pdo = new PDO('mysql:host=localhost;dbname=mini_chat', 'root', '');
-$loggedInUser = $_SESSION['user'];
+$loggedInUser = $_SESSION['username'];
 
-// Récupérer tous les utilisateurs (sauf l'utilisateur connecté)
-$stmt = $pdo->prepare('SELECT username FROM users WHERE username != ?');
-$stmt->execute([$loggedInUser]);
-$users = $stmt->fetchAll();
+try {
+    $pdo = new PDO('mysql:host=localhost;dbname=miniChat', 'root', '');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Récupérer les messages envoyés ou reçus par l'utilisateur
-$stmt = $pdo->prepare('SELECT * FROM messages WHERE sender = ? OR recipient = ? ORDER BY date DESC');
-$stmt->execute([$loggedInUser, $loggedInUser]);
-$messages = $stmt->fetchAll();
+    // Récupérer les utilisateurs sauf celui connecté
+    $stmt = $pdo->prepare('SELECT username FROM users WHERE username != ?');
+    $stmt->execute([$loggedInUser]);
+    $users = $stmt->fetchAll();
+
+    // Récupérer les messages de cet utilisateur
+    $stmt = $pdo->prepare('SELECT * FROM messages WHERE sender = ? OR recipient = ? ORDER BY date DESC');
+    $stmt->execute([$loggedInUser, $loggedInUser]);
+    $messages = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Erreur : " . $e->getMessage());
+}
 
 // Envoyer un message
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['message']) && !empty($_POST['recipient'])) {
-    $recipient = $_POST['recipient'];
-    $message = htmlentities($_POST['message']);
-    
-    // Insérer le message dans la base de données
-    $stmt = $pdo->prepare('INSERT INTO messages (sender, recipient, message) VALUES (?, ?, ?)');
-    $stmt->execute([$loggedInUser, $recipient, $message]);
-    header('Location: chat.php');
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['recipient'])) {
+    $recipient = trim($_POST['recipient']);
+    $message = htmlentities(trim($_POST['message']));
+
+    if (!empty($recipient) && !empty($message)) {
+        $stmt = $pdo->prepare('INSERT INTO messages (sender, recipient, message, date) VALUES (?, ?, ?, NOW())');
+        $stmt->execute([$loggedInUser, $recipient, $message]);
+        header('Location: chat.php');
+        exit();
+    }
 }
+
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Chat</title>
     <style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7fc;
-        margin: 0;
-        padding: 0;
-    }
-    .navbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: #6C87AD;
-        color: white;
-        padding: 10px 20px;
-    }
+        /* Fond sombre avec des dégradés lumineux */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+    color: white;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
 
-    .navbar .logo {
-        font-size: 1.5em;
-        font-weight: bold;
-    }
+/* Barre de navigation */
+.navbar {
+    background: rgba(0, 0, 0, 0.8);
+    width: 100%;
+    padding: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
 
-    .navbar .user-info {
-        display: flex;
-        align-items: center;
-    }
+.navbar .logo {
+    color: #00eaff;
+    font-size: 1.5em;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0px 0px 10px rgba(0, 255, 255, 0.8);
+}
 
-    .navbar .user-info span {
-        margin-right: 20px;
-    }
+.navbar .user-info span {
+    color: #fff;
+    font-size: 1.1em;
+    margin-right: 15px;
+}
 
-    .navbar button {
-        background-color: #fc5c7d;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        cursor: pointer;
-        border-radius: 5px;
-    }
+.navbar button {
+    background-color: #ff3b5c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
 
-    .navbar button:hover {
-        background-color: #f05454;
-    }
+.navbar button:hover {
+    background-color: #ff1f3c;
+}
 
-    h1 {
-        text-align: center;
-        margin-top: 30px;
-        color: #333;
-        font-weight: bold;
-        font-size: 2.5em;
-        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
-        padding: 10px;
-        background: #6C87AD;
+/* Conteneur de chat */
+.chat-container {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 80px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+}
 
-        border-radius: 15px;
-    }
+/* Conteneur de saisie */
+.input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
 
-    .chat-container {
-        width: 90%;
-        max-width: 800px;
-        margin: 30px auto;
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        height: 600px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
+select, input[type="text"] {
+    padding: 12px;
+    border: 2px solid #00eaff;
+    background-color: #1a1a1a;
+    color: white;
+    border-radius: 5px;
+    font-size: 1.1em;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
 
-    .messages-container {
-        flex-grow: 1;
-        overflow-y: auto;
-        margin-bottom: 20px;
-        padding-right: 10px;
-        padding-left: 10px;
-    }
+select:focus, input[type="text"]:focus {
+    border-color: #ff3b5c;
+}
 
-    .message {
-        margin: 12px 0;
-        padding: 15px;
-        border-radius: 15px;
-        max-width: 80%;
-        word-wrap: break-word;
-        font-size: 1.1em;
-        line-height: 1.5;
-    }
+button[type="submit"] {
+    background-color: #00eaff;
+    border: none;
+    padding: 12px;
+    color: white;
+    font-size: 1.1em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
 
-    .message.sent {
-        background: #6C87AD;
+button[type="submit"]:hover {
+    background-color: #00c7d8;
+}
 
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 0;
-    }
+/* Messages */
+.messages-container {
+    margin-top: 30px;
+    overflow-y: auto;
+    max-height: 400px;
+    padding-right: 20px;
+}
 
-    .message.received {
-        background: #f0f0f0;
-        color: #333;
-        align-self: flex-start;
-        border-bottom-left-radius: 0;
-    }
+.message {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 255, 255, 0.2);
+}
 
-    .message-user {
-        font-weight: bold;
-        color: #333;
-    }
+.message.sent {
+    background-color: #00eaff;
+    text-align: right;
+    color: white;
+}
 
-    .message-date {
-        font-size: 0.8em;
-        color: #888;
-        margin-top: 5px;
-    }
+.message.received {
+    background-color: #333;
+    text-align: left;
+    color: white;
+}
 
-    .message-recipient {
-        font-size: 0.9em;
-        color: #444;
-        margin-top: 5px;
-    }
+.message .message-user {
+    font-weight: bold;
+    color: #ff3b5c;
+    font-size: 0.9em;
+    text-shadow: 0 0 5px #ff3b5c;
+}
 
-    .input-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 15px;
-    }
+.message .message-recipient {
+    font-size: 0.9em;
+    color: #ff9b00;
+    text-shadow: 0 0 5px #ff9b00;
+}
 
-    input[type="text"] {
-        width: 75%;
-        padding: 12px;
-        font-size: 1.1em;
-        border: 2px solid #ddd;
-        border-radius: 15px;
-        transition: border-color 0.3s ease;
-        margin-right: 15px;
-    }
+.message p {
+    margin: 5px 0;
+}
 
-    input[type="text"]:focus {
-        border-color: #007bff;
-        outline: none;
-    }
-
-    select {
-        width: 20%;
-        padding: 12px;
-        font-size: 1.1em;
-        border: 2px solid #ddd;
-        border-radius: 15px;
-        background-color: #fff;
-        margin-right: 15px;
-    }
-
-    button {
-        padding: 12px 25px;
-        font-size: 1.1em;
-        background: #6C87AD;
-
-        color: white;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-
-    .pagination {
-        text-align: center;
-        margin-top: 20px;
-    }
-
-    .pagination a {
-        padding: 10px 15px;
-        margin: 0 5px;
-        font-size: 1em;
-        text-decoration: none;
-        background-color: #007bff;
-        color: white;
-        border-radius: 10px;
-        transition: background-color 0.3s ease;
-    }
-
-    .pagination a:hover {
-        background-color: #0056b3;
-    }
-
-    .pagination a.active {
-        background-color: #fc5c7d;
-    }
     </style>
-
-
 </head>
 <body>
 
 <div class="navbar">
     <div class="logo">Mini Chat</div>
     <div class="user-info">
-        <span><?= $_SESSION['user'] ?></span>
-        <form action="register.php" method="POST">
+        <span><?= htmlspecialchars($_SESSION['username']) ?></span>
+        <form method="POST" action="logout.php">
             <button type="submit">Déconnexion</button>
         </form>
     </div>
 </div>
 
 <div class="chat-container">
-    
 
     <form method="POST">
         <div class="input-container">
@@ -266,9 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['message']) && !empty
             <div class="message <?= $msg['sender'] == $loggedInUser ? 'sent' : 'received' ?>">
                 <span class="message-user"><?= $msg['sender'] ?> (<?= $msg['date'] ?>):</span>
                 <p><?= $msg['message'] ?></p>
-                <span class="message-recipient">
-                    À : <?= $msg['recipient'] ?>
-                </span>
+                <span class="message-recipient">À : <?= $msg['recipient'] ?></span>
             </div>
         <?php endforeach; ?>
     </div>
