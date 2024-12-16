@@ -1,20 +1,5 @@
 {
-    "name": "sidi_ahmed/mini-chat",
-    "description": "Un mini-chat PHP avec WebSockets permettant la communication en temps réel entre plusieurs utilisateurs.",
-    "type": "project",
     "require": {
-        "react/socket": "*"
-    },
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "SidiAhmed\\MiniChat\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Sidi Ahmed"
-        }
-    ],
-    "minimum-stability": "stable"
+        "cboden/ratchet": "^0.4.4"
+    }
 }

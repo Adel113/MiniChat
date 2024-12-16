@@ -18,192 +18,24 @@ try {
     $stmt->execute([$loggedInUser]);
     $users = $stmt->fetchAll();
 
-    // Récupérer les messages de cet utilisateur
-    $stmt = $pdo->prepare('SELECT * FROM messages WHERE sender = ? OR recipient = ? ORDER BY date DESC');
+    // Récupérer les 20 derniers messages
+    $stmt = $pdo->prepare('SELECT * FROM messages WHERE sender = ? OR recipient = ? ORDER BY date DESC LIMIT 20');
     $stmt->execute([$loggedInUser, $loggedInUser]);
     $messages = $stmt->fetchAll();
 } catch (PDOException $e) {
     die("Erreur : " . $e->getMessage());
 }
-
-// Envoyer un message
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['recipient'])) {
-    $recipient = trim($_POST['recipient']);
-    $message = htmlentities(trim($_POST['message']));
-
-    if (!empty($recipient) && !empty($message)) {
-        $stmt = $pdo->prepare('INSERT INTO messages (sender, recipient, message, date) VALUES (?, ?, ?, NOW())');
-        $stmt->execute([$loggedInUser, $recipient, $message]);
-        header('Location: chat.php');
-        exit();
-    }
-}
-
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Chat</title>
-    <style>
-        /* Fond sombre avec des dégradés lumineux */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
-    color: white;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Barre de navigation */
-.navbar {
-    background: rgba(0, 0, 0, 0.8);
-    width: 100%;
-    padding: 15px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-.navbar .logo {
-    color: #00eaff;
-    font-size: 1.5em;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-shadow: 0px 0px 10px rgba(0, 255, 255, 0.8);
-}
-
-.navbar .user-info span {
-    color: #fff;
-    font-size: 1.1em;
-    margin-right: 15px;
-}
-
-.navbar button {
-    background-color: #ff3b5c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.navbar button:hover {
-    background-color: #ff1f3c;
-}
-
-/* Conteneur de chat */
-.chat-container {
-    width: 100%;
-    max-width: 800px;
-    margin-top: 80px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
-}
-
-/* Conteneur de saisie */
-.input-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-select, input[type="text"] {
-    padding: 12px;
-    border: 2px solid #00eaff;
-    background-color: #1a1a1a;
-    color: white;
-    border-radius: 5px;
-    font-size: 1.1em;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.3s ease;
-}
-
-select:focus, input[type="text"]:focus {
-    border-color: #ff3b5c;
-}
-
-button[type="submit"] {
-    background-color: #00eaff;
-    border: none;
-    padding: 12px;
-    color: white;
-    font-size: 1.1em;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-button[type="submit"]:hover {
-    background-color: #00c7d8;
-}
-
-/* Messages */
-.messages-container {
-    margin-top: 30px;
-    overflow-y: auto;
-    max-height: 400px;
-    padding-right: 20px;
-}
-
-.message {
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 255, 255, 0.2);
-}
-
-.message.sent {
-    background-color: #00eaff;
-    text-align: right;
-    color: white;
-}
-
-.message.received {
-    background-color: #333;
-    text-align: left;
-    color: white;
-}
-
-.message .message-user {
-    font-weight: bold;
-    color: #ff3b5c;
-    font-size: 0.9em;
-    text-shadow: 0 0 5px #ff3b5c;
-}
-
-.message .message-recipient {
-    font-size: 0.9em;
-    color: #ff9b00;
-    text-shadow: 0 0 5px #ff9b00;
-}
-
-.message p {
-    margin: 5px 0;
-}
-
-    </style>
+    <link rel="stylesheet" href="stylechat.css">
 </head>
 <body>
-
 <div class="navbar">
     <div class="logo">Mini Chat</div>
     <div class="user-info">
@@ -215,30 +47,98 @@ button[type="submit"]:hover {
 </div>
 
 <div class="chat-container">
-
-    <form method="POST">
+    <form id="chat-form">
         <div class="input-container">
-            <select name="recipient" required>
+            <select name="recipient" id="recipient-select" required>
                 <option value="">Choisir un destinataire</option>
                 <?php foreach ($users as $user): ?>
                     <option value="<?= $user['username'] ?>"><?= $user['username'] ?></option>
                 <?php endforeach; ?>
             </select>
-            <input type="text" name="message" placeholder="Votre message" required>
+            <input type="text" name="message" id="message-input" placeholder="Votre message" required>
             <button type="submit">Envoyer</button>
         </div>
     </form>
 
-    <div class="messages-container">
-        <?php foreach ($messages as $msg): ?>
+    <div class="messages-container" id="messages-container">
+        <?php foreach (array_reverse($messages) as $msg): ?>
             <div class="message <?= $msg['sender'] == $loggedInUser ? 'sent' : 'received' ?>">
-                <span class="message-user"><?= $msg['sender'] ?> (<?= $msg['date'] ?>):</span>
-                <p><?= $msg['message'] ?></p>
-                <span class="message-recipient">À : <?= $msg['recipient'] ?></span>
+                <span class="message-user"><?= htmlspecialchars($msg['sender']) ?> (<?= $msg['date'] ?>):</span>
+                <p><?= htmlspecialchars($msg['message']) ?></p>
             </div>
         <?php endforeach; ?>
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const messagesContainer = document.getElementById('messages-container');
+    const form = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const recipientSelect = document.getElementById('recipient-select');
+
+    // Ajouter un message dans la vue
+    function addMessage(message) {
+    const messageDiv = document.createElement('div');
+
+    // Si le message est envoyé par l'utilisateur connecté, classe "sent", sinon "received"
+    messageDiv.className = message.sender === "<?= $loggedInUser ?>" ? 'message sent' : 'message received';
+
+    messageDiv.innerHTML = `
+        <span class="message-user">${message.sender} (${message.date}):</span>
+        <p>${message.message}</p>
+        ${message.sender === "<?= $loggedInUser ?>" ? `<span class="message-recipient">Envoyé à : ${message.recipient}</span>` : ''}
+    `;
+
+    // Ajouter le message dans le conteneur
+    messagesContainer.appendChild(messageDiv);
+
+    // Faire défiler automatiquement vers le bas
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+    // Envoi de message
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        const recipient = recipientSelect.value;
+
+        if (message && recipient) {
+            fetch('send_message.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipient, message }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        addMessage({
+                            sender: "<?= $loggedInUser ?>",
+                            recipient,
+                            message,
+                            date: new Date().toLocaleString(),
+                        });
+                        messageInput.value = '';
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch((err) => console.error('Erreur lors de l\'envoi :', err));
+        }
+    });
+
+    // Récupérer les nouveaux messages toutes les 3 secondes
+    setInterval(() => {
+        fetch('fetch_messages.php')
+            .then((response) => response.json())
+            .then((data) => {
+                messagesContainer.innerHTML = ''; // Réinitialiser l'affichage
+                data.forEach(addMessage);
+            })
+            .catch((err) => console.error('Erreur lors de la récupération :', err));
+    }, 1000);
+});
+
+</script>
 </body>
 </html>
