@@ -114,17 +114,34 @@ try {
         const messageInput = document.getElementById('message-input');
         const recipientInput = document.getElementById('recipient-input');
 
+        let currentRecipient = '';  // Variable pour stocker le destinataire actuel
+
         // Fonction pour définir le destinataire et mettre à jour le bouton sélectionné
         window.selectRecipient = (username, button) => {
             recipientInput.value = username;
-            
+            currentRecipient = username;
+
             // Retirer la classe "selected" des autres boutons
             const buttons = document.querySelectorAll('.recipient-button');
             buttons.forEach(btn => btn.classList.remove('selected-recipient'));
-            
+
             // Ajouter la classe "selected" au bouton sélectionné
             button.classList.add('selected-recipient');
+
+            // Charger les messages pour ce destinataire
+            loadMessages(username);
         };
+
+        // Charger les messages pour un destinataire
+        function loadMessages(recipient) {
+            fetch(`fetch_messages.php?recipient=${recipient}`)
+                .then(response => response.json())
+                .then(data => {
+                    messagesContainer.innerHTML = '';  // Réinitialiser l'affichage
+                    data.forEach(addMessage);  // Ajouter les messages au conteneur
+                })
+                .catch(err => console.error('Erreur lors de la récupération des messages :', err));
+        }
 
         // Ajouter un message dans la vue
         function addMessage(message) {
@@ -171,45 +188,47 @@ try {
 
         // Récupérer les nouveaux messages toutes les 3 secondes
         setInterval(() => {
-            fetch('fetch_messages.php')
-                .then((response) => response.json())
-                .then((data) => {
-                    messagesContainer.innerHTML = ''; // Réinitialiser l'affichage
-                    data.forEach(addMessage);
-                })
-                .catch((err) => console.error('Erreur lors de la récupération :', err));
+            if (currentRecipient) {
+                loadMessages(currentRecipient);
+            }
         }, 1000);
     });
 
-// Créer une connexion WebSocket
-const socket = new WebSocket('ws://localhost:8080');
+    
+    const socket = new WebSocket('ws://192.168.1.100:8080');
 
-// Lorsque la connexion est ouverte
-socket.onopen = () => {
-    console.log('Connexion établie avec le serveur WebSocket');
-};
 
-// Lorsque le serveur envoie un message
-socket.onmessage = (event) => {
-    console.log('Message du serveur: ', event.data);
-    // Ajoutez ici la logique pour mettre à jour l'interface avec les nouveaux messages
-};
 
-// Lorsque la connexion est fermée
-socket.onclose = () => {
-    console.log('Connexion fermée');
-};
-
-// Envoi d'un message au serveur
-function sendMessage(message) {
-    const data = {
-        sender: '<?= $loggedInUser ?>',  // Exemple de sender
-        recipient: document.getElementById('recipient-input').value,  // Utiliser le destinataire sélectionné
-        message: message
+    // Lorsque la connexion est ouverte
+    socket.onopen = () => {
+        console.log('Connexion établie avec le serveur WebSocket');
     };
-    socket.send(JSON.stringify(data));
-}
+
+    // Lorsque le serveur envoie un message
+    socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('Message du serveur: ', message);
+        if (message.recipient === "<?= $loggedInUser ?>" || message.sender === "<?= $loggedInUser ?>") {
+            addMessage(message);
+        }
+    };
+
+    // Lorsque la connexion est fermée
+    socket.onclose = () => {
+        console.log('Connexion fermée');
+    };
+
+    // Envoi d'un message au serveur via WebSocket
+    function sendMessage(message) {
+        const data = {
+            sender: '<?= $loggedInUser ?>',
+            recipient: document.getElementById('recipient-input').value,
+            message: message
+        };
+        socket.send(JSON.stringify(data));
+    }
 </script>
+
 
 </body>
 </html>

@@ -2,23 +2,18 @@
 require __DIR__ . '/vendor/autoload.php';
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
-
 class Chat implements MessageComponentInterface {
     protected $clients;
-
     public function __construct() {
         $this->clients = new \SplObjectStorage;
     }
-
     public function onOpen(ConnectionInterface $conn) {
         $this->clients->attach($conn);
         echo "Nouvelle connexion ! ({$conn->resourceId})\n";
     }
-
     public function onMessage(ConnectionInterface $from, $msg) {
         echo "Message reçu : " . $msg . "\n"; // Affiche le message reçu
         $data = json_decode($msg, true);
-    
         if (isset($data['sender'], $data['recipient'], $data['message'])) {
             try {
                 $pdo = new PDO('mysql:host=localhost;dbname=miniChat', 'root', '');
@@ -31,24 +26,19 @@ class Chat implements MessageComponentInterface {
             }
         }
     }
-
     public function onClose(ConnectionInterface $conn) {
         $this->clients->detach($conn);
         echo "Connexion {$conn->resourceId} déconnectée\n";
     }
-
     public function onError(ConnectionInterface $conn, \Exception $e) {
         echo "Erreur : {$e->getMessage()}\n";
         $conn->close();
     }
 }
-
 use Ratchet\Server\IoServer;
-
 $server = IoServer::factory(
     new Chat(),
     8080
 );
-
 echo "Serveur WebSocket démarré sur le port 8080\n";
 $server->run();

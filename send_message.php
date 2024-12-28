@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['username'])) {
@@ -10,12 +9,9 @@ if (!isset($_SESSION['username'])) {
     ]);
     exit();
 }
-
 $loggedInUser = $_SESSION['username'];
-
-// Décoder les données JSON envoyées depuis fetch
+// décoder les données JSON envoyées depuis fetch
 $data = json_decode(file_get_contents('php://input'), true);
-
 if (!isset($data['recipient'], $data['message'])) {
     echo json_encode([
         'success' => false,
@@ -23,10 +19,8 @@ if (!isset($data['recipient'], $data['message'])) {
     ]);
     exit();
 }
-
 $recipient = trim($data['recipient']);
 $message = trim($data['message']);
-
 if (empty($recipient) || empty($message)) {
     echo json_encode([
         'success' => false,
@@ -34,7 +28,6 @@ if (empty($recipient) || empty($message)) {
     ]);
     exit();
 }
-
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=miniChat', 'root', '');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

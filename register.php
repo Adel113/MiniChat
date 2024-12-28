@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
         try {
-            $pdo = new PDO('mysql:host=localhost;dbname=miniChat', 'root', '');
+            $pdo = new PDO('mysql:host=localhost;dbname=minichat', 'root', '');
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             // Vérifier si l'utilisateur existe déjà
